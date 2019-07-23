@@ -22,49 +22,24 @@ module.exports = {
             console.log(result)
         })
     },
-
+    
     postDiskusi:(req,res)=>{
         var date = new Date()
-        // var data = {
-        //     user_id : req.body.user_id,
-        //     diskusi :  req.body.diskusi,
-        //     // diskusi_date : moment(date).format('YYYY-MM-DD hh:mm:ss')
-        // }
-        console.log('uuu ')
-        var sql = `INSERT INTO diskusi set user_id=${req.body.user_id}, diskusi='${req.body.diskusi}';`
-        conn.query(sql,(err,result)=>{
-            if(err) throw err
-            console.log(err)
-            res.send(result)
-        })
-    }
+        // var {user_id, diskusi} = req.body
+        // var diskusi = {user_id,diskusi_date}
+        var data = {
+            user_id : req.body.user_id,
+            diskusi : req.body.diskusi,
+            diskusi_date : date
+        }
+        console.log(data)
+        console.log(req.body)
 
-    // postDiskusi:(req,res)=>{
-    //     var date = new Date()
-    //     // var {user_id, diskusi} = req.body
-    //     // var diskusi = {user_id,diskusi_date}
-    //     var data = {
-    //         user_id : req.body.user_id,
-    //         diskusi : req.body.diskusi,
-    //         diskusi_date : date
-    //     }
-    //     var sql = `INSERT INTO diskusi set ?`
-    //     conn.query(sql,(err,result)=>{
-    //         if(err) throw err
-    //         res.send(result)
-    //         console.log(result)
-    //     })
-    // }
-    ,
-    postpone:(req,res)=>{
-        console.log("Asdasd")
-    },
-
-    postone:(req,res)=>{
-        var sql = `insert into diskusi set user_id = ${req.body.user_id}, diskusi = '${req.body.diskusi}';`
-        conn.query(sql,(err,result)=>{
+        var sql = `INSERT INTO diskusi set ?`
+        conn.query(sql,data,(err,result)=>{
             if(err) throw err
             res.send(result)
+            console.log(result)
         })
     },
 

@@ -16,7 +16,7 @@ app.get('/', (req,res) => {
 
 const { masterRouter} = require('./routers');
 
-app.use('/master', masterRouter);
+app.use('/diskusi', masterRouter);
 
 
 app.listen(port, () => console.log('API Aktif di port ' + port))
