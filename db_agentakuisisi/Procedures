@@ -1,0 +1,164 @@
+Procedures:
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `prcDeleteRoute`(_sessionID VARCHAR(50))
+BEGIN
+  DELETE FROM gpslocations
+  WHERE sessionID = _sessionID;
+END
+-------------------------------------------------------------------------------------------------
+CREATE DEFINER=`root`@`localhost` PROCEDURE `prcGetAllRoutesForMap`()
+BEGIN
+  CREATE TEMPORARY TABLE tempRoutes2 (
+    sessionID VARCHAR(50),
+    userName VARCHAR(50),
+    latitude VARCHAR(50),
+    longitude VARCHAR(50),
+	action VARCHAR(50),
+account VARCHAR(50),
+nama VARCHAR(50),
+status VARCHAR(10),
+	datetime VARCHAR(50)
+	)
+  ENGINE = MEMORY;
+
+  INSERT INTO tempRoutes2 (sessionID, userName,latitude,longitude,action,account,nama,datetime,status)
+    select time_track.id,time_track.users,latitude,longitude,result,main_data.account_number,main_data.name,time_track.datetime,'Login' FROM time_track join main_data
+ON time_track.account_number=main_data.account_number
+   where  date(time_track.datetime)= CURDATE() and time_track.latitude<>'' and  time_track.longitude<>'';
+   
+  INSERT INTO tempRoutes2 (sessionID, userName,latitude,longitude,action,account,nama,datetime,status)
+   select GPSLocationID,userName,latitude,longitude,'gps','','',latest_io.tanggal,latest_io.keterangan FROM (SELECT MAX(GPSLocationID) ID
+      FROM gpslocations_now
+      WHERE sessionID != '0' && CHAR_LENGTH(sessionID) != 0 && gpstime != '0000-00-00 00:00:00'
+      GROUP BY userName) AS MaxID
+JOIN gpslocations_now ON gpslocations_now.GPSLocationID = MaxID.ID and DATE(gpstime) = CURDATE()
+JOIN latest_io ON latest_io.user=gpslocations_now.userName
+where  date(gpsTime)= CURDATE();
+   
+   
+    SELECT sessionID as sessionId, datetime,
+CONCAT('{ "latitude":"', CAST(latitude AS CHAR),'", "longitude":"', CAST(longitude AS CHAR), '", 
+"speed":"', '', '", "direction":"', '', '", "distance":"', '', '", "locationMethod":"', '', '", 
+"gpsTime":"', DATE_FORMAT(datetime, '%d-%m-%Y %H:%i:%s'), '", "userName":"', userName, '", 
+"phoneNumber":"', '', '", "sessionID":"', sessionID, '", "accuracy":"', '', '", "extraInfo":"', '', '","status":"', status, '","account_number":"', account, '","nama":"', nama, '",	"status_action":"', action, '" }')
+json 
+      FROM tempRoutes2;
+
+ 
+END
+-------------------------------------------------------------------------------------------------
+CREATE DEFINER=`root`@`localhost` PROCEDURE `prcGetAllRoutesForMap_by_users`(IN `_users` VARCHAR(50))
+BEGIN
+  CREATE TEMPORARY TABLE tempRoutes2 (
+    sessionID VARCHAR(50),
+    userName VARCHAR(50),
+    latitude VARCHAR(50),
+    longitude VARCHAR(50),
+	action VARCHAR(50),
+account VARCHAR(50),
+nama VARCHAR(50),
+status VARCHAR(10),
+	datetime VARCHAR(50)
+	)
+  ENGINE = MEMORY;
+
+  INSERT INTO tempRoutes2 (sessionID, userName,latitude,longitude,action,account,nama,datetime,status)
+    select time_track.id,time_track.users,latitude,longitude,result,main_data.account_number,main_data.name,time_track.datetime,'Login' FROM time_track join main_data
+ON time_track.account_number=main_data.account_number
+   where time_track.users=_users and date(time_track.datetime)= CURDATE() and time_track.latitude<>'' and  time_track.longitude<>'';
+   
+  INSERT INTO tempRoutes2 (sessionID, userName,latitude,longitude,action,account,nama,datetime,status)
+   select GPSLocationID,userName,latitude,longitude,'gps','','',gpsTime,latest_io.keterangan FROM (SELECT MAX(GPSLocationID) ID
+      FROM gpslocations_now
+      WHERE sessionID != '0' && CHAR_LENGTH(sessionID) != 0 && gpstime != '0000-00-00 00:00:00'
+      GROUP BY userName) AS MaxID
+JOIN gpslocations_now ON gpslocations_now.GPSLocationID = MaxID.ID and DATE(gpstime) = CURDATE()
+JOIN latest_io ON latest_io.user=gpslocations_now.userName
+where  date(gpsTime)= CURDATE() and userName=_users;
+   
+   
+    SELECT sessionID as sessionId, datetime,
+CONCAT('{ "latitude":"', CAST(latitude AS CHAR),'", "longitude":"', CAST(longitude AS CHAR), '", 
+"speed":"', '', '", "direction":"', '', '", "distance":"', '', '", "locationMethod":"', '', '", 
+"gpsTime":"', DATE_FORMAT(datetime, '%d-%m-%Y %H:%i:%s'), '", "userName":"', userName, '", 
+"phoneNumber":"', '', '", "sessionID":"', sessionID, '", "accuracy":"', '', '", "extraInfo":"', '', '","status":"', status, '","account_number":"', account, '","nama":"', nama, '",	"status_action":"', action, '" }')
+json 
+      FROM tempRoutes2 ;
+
+ 
+END
+-------------------------------------------------------------------------------------------------
+CREATE DEFINER=`root`@`localhost` PROCEDURE `prcGetRouteForMap`(IN _sessionID VARCHAR(50))
+BEGIN
+  SELECT CONCAT('{ "latitude":"', CAST(latitude AS CHAR),'", "longitude":"', CAST(longitude AS CHAR), '", "speed":"', CAST(speed AS CHAR), '", "direction":"', CAST(direction AS CHAR), '", "distance":"', CAST(distance AS CHAR), '", "locationMethod":"', locationMethod, '", "gpsTime":"', DATE_FORMAT(gpsTime, '%b %e %Y %h:%i%p'), '", "userName":"', userName, '", "phoneNumber":"', phoneNumber, '", "sessionID":"', CAST(sessionID AS CHAR), '", "accuracy":"', CAST(accuracy AS CHAR), '", "extraInfo":"', extraInfo, '" }') json
+  FROM gpslocations_now
+  WHERE sessionID = _sessionID
+  ORDER BY lastupdate;
+END
+-------------------------------------------------------------------------------------------------
+CREATE DEFINER=`root`@`localhost` PROCEDURE `prcGetRoutes`()
+BEGIN
+  CREATE TEMPORARY TABLE tempRoutes (
+    sessionID VARCHAR(50),
+    userName VARCHAR(50),
+    startTime DATETIME,
+    endTime DATETIME)
+  ENGINE = MEMORY;
+
+  INSERT INTO tempRoutes (sessionID, userName)
+  SELECT DISTINCT sessionID, userName
+  FROM gpslocations_now
+JOIN latest_io ON latest_io.user=gpslocations_now.userName where date(gpsTime)=CURDATE() group by userName;
+
+  UPDATE tempRoutes tr
+  SET startTime = (SELECT MIN(gpsTime) FROM gpslocations_now gl
+  WHERE gl.sessionID = tr.sessionID
+  AND gl.userName = tr.userName);
+
+  UPDATE tempRoutes tr
+  SET endTime = (SELECT MAX(gpsTime) FROM gpslocations_now gl
+  WHERE gl.sessionID = tr.sessionID
+  AND gl.userName = tr.userName AND date(gpsTime)=CURDATE());
+
+  SELECT
+
+  CONCAT('{ "sessionID": "', CAST(sessionID AS CHAR),  '", "userName": "', userName, '", "times": "(', DATE_FORMAT(startTime, '%b %e %Y %h:%i%p'), ' - ', DATE_FORMAT(endTime, '%b %e %Y %h:%i%p'), ')" }') json
+  FROM tempRoutes
+  ORDER BY startTime DESC;
+
+  DROP TABLE tempRoutes;
+END
+-------------------------------------------------------------------------------------------------
+CREATE DEFINER=`root`@`localhost` PROCEDURE `prcSaveGPSLocation`(IN _latitude DECIMAL(10,7), IN _longitude DECIMAL(10,7), IN _speed INT(10), IN _direction INT(10), IN _distance DECIMAL(10,1), IN _date TIMESTAMP, IN _locationMethod VARCHAR(50), IN _userName VARCHAR(50), IN _phoneNumber VARCHAR(50), IN _sessionID VARCHAR(50), IN _accuracy INT(10), IN _extraInfo VARCHAR(255), IN _eventType VARCHAR(50))
+BEGIN
+DECLARE CheckExists int;
+ INSERT INTO gpslocations (latitude, longitude, speed, direction, distance, gpsTime, locationMethod, userName, phoneNumber,  sessionID, accuracy, extraInfo, eventType)
+   VALUES (_latitude, _longitude, _speed, _direction, _distance, _date, _locationMethod, _userName, _phoneNumber, _sessionID, _accuracy, _extraInfo, _eventType);
+   SELECT NOW();
+ SELECT count(*) INTO CheckExists from gpslocations_now WHERE  userName = _userName;   
+ IF (CheckExists > 0) THEN
+        
+            UPDATE gpslocations_now SET 
+				latitude = _latitude, 
+			longitude= _longitude,
+			speed=_speed,
+			direction=_direction,
+			distance=_distance,
+			gpsTime=_date,
+			locationMethod=_locationMethod,
+			phoneNumber=_phoneNumber,
+			sessionID=_sessionID,
+			accuracy=_accuracy,
+			extraInfo=_extraInfo,
+			eventType=_eventType
+			WHERE userName = _userName;
+		
+    ELSE
+       
+             INSERT INTO gpslocations_now (latitude, longitude, speed, direction, distance, gpsTime, locationMethod, userName, phoneNumber,  sessionID, accuracy, extraInfo, eventType)
+			VALUES (_latitude, _longitude, _speed, _direction, _distance, _date, _locationMethod, _userName, _phoneNumber, _sessionID, _accuracy, _extraInfo, _eventType);
+			SELECT NOW();
+       
+END IF;
+END
+-------------------------------------------------------------------------------------------------

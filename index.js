@@ -3,7 +3,7 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 var app = express({defaultErrorHandler:false});
 
-var port = process.env.PORT || 2019;
+var port = process.env.PORT || 2121;
 
 app.use(cors())
 app.use(bodyParser.urlencoded({extended:false}))
@@ -14,9 +14,8 @@ app.get('/', (req,res) => {
     res.send('<h1>API RUNNING : SUCCESS</h1>')
 })
 
-const { authRouter, masterRouter} = require('./routers');
+const { masterRouter} = require('./routers');
 
-app.use('/auth', authRouter);
 app.use('/master', masterRouter);
 
 
