@@ -5,7 +5,13 @@ const moment = require('moment')
 module.exports = {
 
     showDiskusi: (req,res) => {
-        var sql = `SELECT * FROM diskusi;`
+        var sql = `SELECT
+        d.id as id,
+        u.username as username,
+        d.diskusi as diskusi,
+        diskusi_date as date
+        FROM diskusi d
+        JOIN user u ON d.user_id = u.id`
 
         conn.query(sql,(err, result) => {
             if(err) throw err;
@@ -14,15 +20,21 @@ module.exports = {
     },
 
     showDiskusiById: (req,res) => {
-        var id = req.params.user_id
-        var sql = `SELECT * FROM diskusi where user_id = '${id}'`
+        var sql = `SELECT
+        d.id as id,
+        u.username as username,
+        d.diskusi as diskusi,
+        diskusi_date as date
+        FROM diskusi d
+        JOIN user u ON d.user_id = u.id
+        WHERE user_id = '${req.params.user_id}'`
         conn.query(sql,(err, result) => {
             if(err) throw err;
             res.send(result)
             console.log(result)
         })
     },
-    
+
     postDiskusi:(req,res)=>{
         var date = new Date()
         // var {user_id, diskusi} = req.body

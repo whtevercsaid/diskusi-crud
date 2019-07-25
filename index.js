@@ -14,9 +14,10 @@ app.get('/', (req,res) => {
     res.send('<h1>API RUNNING : SUCCESS</h1>')
 })
 
-const { masterRouter} = require('./routers');
+const { masterRouter, komentRouter} = require('./routers');
 
 app.use('/diskusi', masterRouter);
+app.use('/komentar', komentRouter);
 
 
 app.listen(port, () => console.log('API Aktif di port ' + port))
